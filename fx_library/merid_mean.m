@@ -1,43 +1,49 @@
-% This function reduces the input grid over the defined user range and outputs the indices
-% for use in data arrays as well. A common use would be to define a latitude range and reduce that grid
-% to a defined latitude range that the user wants, and get the indices to reduce the data array in the ab$
+% This function takes in an array of values and latitudinally averages over
+% them using the curvature of the earth (cos(latitude)) as weighting.
 %
 %	Inputs:
-%               in_grid         -->             (1d array) The grid that you are reducing
-%               in_range        -->             (1 or 2 element array) The array containing the end point$
-%                                                       the grid (inclusive) to include in the output gri$
-%                                                       The first element must be the smaller of the two $
-%                                                       If using one element, out_inds will also return 1$
+%               arrayin         -->             (1d array) The values that you want to average over a latitude band
+%
+%               latitude        -->             (1d array) The latitudes at which the values in "arrayin" are valid
+%               nanswitch       -->             (0 or 1) If == 1, exclude NaNs in average, else set to 0 
 %
 %	Outputs:
-%               out_grid        -->             (1d array) The grid with the reduced number of elements b$
-%               out_inds        -->             (1d array) The indices corresponding to the original "in_$
-%                                                       by the above level program on data if necessary
+%               arrayout        -->             (Floating number) The average value of "arrayin" values over all latitudes
+%               
 %
 
-function [arrayout] = merid_mean(arrayin, latgrid)
+function [arrayout] = merid_mean(arrayin, latgrid, nanswitch)
+
+% make sure the arrays are shaped correctly
 arrayin=squeeze(arrayin);
 latgrid=squeeze(latgrid);
-
 check1=size(arrayin);
 check2=size(latgrid);
 if check1(1)==check2(2)
         arrayin=arrayin';
-        size(arrayin);
-        size(latgrid);
 end
 
-
-nans=isnan(arrayin);
-newarray=arrayin.*cosd(latgrid);
-num=sum(newarray(~nans));
-latgrid(~nans);
-den=sum(cosd(latgrid(~nans)));
-if den==0
-	arrayout=NaN;
-        %fprintf('bad denominator, filling with NaN\n')
-    return
+% if nanswitch==1 take averages removing NaNs
+if nanswitch==1
+    nans=isnan(arrayin);
+    newarray=arrayin.*cosd(latgrid);
+    num=sum(newarray(~nans));
+    latgrid(~nans);
+    den=sum(cosd(latgrid(~nans)));
+    if den==0
+        arrayout=NaN;
+        return
+    end
+    arrayout=num./den;
+elseif nanswitch==0
+    % take the meridional average
+    newarray=arrayin.*cosd(latgrid);
+    num=sum(newarray);
+    den=sum(cosd(latgrid));
+    arrayout=num./den;
+else
+    error('nanswitch not correctly specified for "merid_mean()". /n')
 end
-arrayout=num./den;
 
+% go to the above program level
 return
